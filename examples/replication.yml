@@ -1,0 +1,43 @@
+# docker-compose.yml example for replication, Credit: Bitnami Monogdb Github
+version: '3'
+
+services:
+  mongodb-primary:
+    image: 'swanzeyb/mongodb:arm64'
+    environment:
+      - MONGODB_ADVERTISED_HOSTNAME=mongodb-primary
+      - MONGODB_REPLICA_SET_MODE=primary
+      - MONGODB_ROOT_PASSWORD=<Root Password>
+      - MONGODB_REPLICA_SET_KEY=<Shared Replica Key>
+    ports:
+      - '27017:27017'
+    volumes:
+      - 'mongodb_master_data:/bitnami'
+
+  mongodb-secondary:
+    image: 'swanzeyb/mongodb:arm64'
+    depends_on:
+      - mongodb-primary
+    environment:
+      - MONGODB_ADVERTISED_HOSTNAME=mongodb-secondary
+      - MONGODB_REPLICA_SET_MODE=secondary
+      - MONGODB_INITIAL_PRIMARY_HOST=mongodb-primary
+      - MONGODB_INITIAL_PRIMARY_PORT_NUMBER=27017
+      - MONGODB_INITIAL_PRIMARY_ROOT_PASSWORD=<Root Password>
+      - MONGODB_REPLICA_SET_KEY=<Shared Replica Key>
+
+  mongodb-arbiter:
+    image: 'swanzeyb/mongodb:arm64'
+    depends_on:
+      - mongodb-primary
+    environment:
+      - MONGODB_ADVERTISED_HOSTNAME=mongodb-arbiter
+      - MONGODB_REPLICA_SET_MODE=arbiter
+      - MONGODB_INITIAL_PRIMARY_HOST=mongodb-primary
+      - MONGODB_INITIAL_PRIMARY_PORT_NUMBER=27017
+      - MONGODB_INITIAL_PRIMARY_ROOT_PASSWORD=<Root Password>
+      - MONGODB_REPLICA_SET_KEY=<Shared Replica Key>
+
+volumes:
+  mongodb_master_data:
+    driver: local

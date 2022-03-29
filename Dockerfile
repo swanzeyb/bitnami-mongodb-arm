@@ -1,20 +1,30 @@
-FROM --platform=arm64 docker.io/bitnami/minideb:buster
+FROM --platform=arm64 ubuntu:20.04
 LABEL maintainer "swanzeyb <swanzeyb2001@gmail.com>"
 
 ENV HOME="/" \
     OS_ARCH="arm64" \
-    OS_FLAVOUR="debian-10" \
+    OS_FLAVOUR="ubuntu-20.04" \
     OS_NAME="linux"
 
 COPY prebuildfs /
-# Install required system packages and dependencies
-RUN install_packages acl ca-certificates curl gzip libc6 libcom-err2 libcurl4 libffi6 libgcc1 libgcrypt20 libgmp10 libgnutls30 libgpg-error0 libgssapi-krb5-2 libhogweed4 libidn2-0 libk5crypto3 libkeyutils1 libkrb5-3 libkrb5support0 libldap-2.4-2 liblzma5 libnettle6 libnghttp2-14 libp11-kit0 libpsl5 librtmp1 libsasl2-2 libssh2-1 libssl1.1 libtasn1-6 libunistring2 numactl procps tar zlib1g
+
+# Add Curl
+RUN apt-get update && apt-get -y install curl
 
 # Add MongoDB Package
-WORKDIR /opt/bitnami
-RUN curl --remote-name --silent --show-error --fail "https://fastdl.mongodb.org/linux/mongodb-linux-aarch64-ubuntu1804-5.0.6.tgz"
-RUN mkdir "mongodb" && mkdir "mongodb/bin" && tar --directory "/opt/bitnami/mongodb/bin" --extract --gunzip --file "mongodb-linux-aarch64-ubuntu1804-5.0.6.tgz" --no-same-owner --strip-components=2
-RUN rm "mongodb-linux-aarch64-ubuntu1804-5.0.6.tgz"
+RUN curl --remote-name --silent --show-error --fail \
+    "https://repo.mongodb.org/apt/ubuntu/dists/focal/mongodb-org/5.0/multiverse/binary-arm64/mongodb-org-server_5.0.6_arm64.deb"
+
+RUN mkdir "/opt/bitnami/mongodb" && \
+    dpkg -i --force-all --instdir="/opt/bitnami/mongodb" "mongodb-org-server_5.0.6_arm64.deb" && \
+    chmod +x "/opt/bitnami/mongodb/usr/bin/mongod" && \
+    rm "mongodb-org-server_5.0.6_arm64.deb"
+
+# Ensure Dependencies are installed
+RUN apt-get -y -f install
+
+# Link mongod
+RUN ln -s /opt/bitnami/mongodb/usr/bin /opt/bitnami/mongodb/bin
 
 RUN apt-get update && apt-get upgrade -y && \
     rm -r /var/lib/apt/lists /var/cache/apt/archives
